@@ -1,0 +1,9 @@
+
+{
+  "appId": "com.harvesthaven.game",
+  "appName": "Harvest Haven",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
