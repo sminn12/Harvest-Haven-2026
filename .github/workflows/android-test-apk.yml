@@ -1,0 +1,77 @@
+
+name: Harvest Haven Android Test APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build Harvest Haven web files
+        run: npm run build
+
+      - name: Verify web build output
+        run: |
+          if [ ! -d "www" ] && [ ! -d "dist" ]; then
+            echo "ERROR: No www/ or dist/ build directory found."
+            echo "Check the webDir setting in capacitor.config.json."
+            exit 1
+          fi
+
+      - name: Generate Android project
+        run: npx cap add android
+        continue-on-error: true
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Verify Android project
+        run: |
+          if [ ! -d "android/app" ]; then
+            echo "ERROR: android/app was not generated."
+            exit 1
+          fi
+          if [ ! -f "android/gradlew" ]; then
+            echo "ERROR: Android Gradle wrapper is missing."
+            exit 1
+          fi
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Harvest-Haven-test-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
