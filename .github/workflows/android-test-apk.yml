@@ -22,51 +22,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
-      - name: Install npm dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: npm install
 
-      - name: Build Harvest Haven web files
-        run: npm run build
-
-      - name: Verify web build output
+      - name: Verify game files
         run: |
-          if [ ! -d "www" ] && [ ! -d "dist" ]; then
-            echo "ERROR: No www/ or dist/ build directory found."
-            echo "Check the webDir setting in capacitor.config.json."
-            exit 1
-          fi
+          test -f capacitor.config.json
+          test -f package.json
+          test -f www/index.html
 
       - name: Generate Android project
         run: npx cap add android
-        continue-on-error: true
 
-      - name: Sync Capacitor Android project
+      - name: Sync game into Android project
         run: npx cap sync android
 
       - name: Verify Android project
         run: |
-          if [ ! -d "android/app" ]; then
-            echo "ERROR: android/app was not generated."
-            exit 1
-          fi
-          if [ ! -f "android/gradlew" ]; then
-            echo "ERROR: Android Gradle wrapper is missing."
-            exit 1
-          fi
+          test -d android/app
+          test -f android/gradlew
 
       - name: Build debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
